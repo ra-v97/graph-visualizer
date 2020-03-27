@@ -25,6 +25,10 @@ public abstract class GraphNode extends SingleNode {
         coordinates = coordinates.getRotation();
     }
 
+    public void rotate(Double pitch, Double yaw, Double roll) {
+        coordinates = coordinates.rotate(pitch, yaw, roll);
+    }
+
     public double getXCoordinate() {
         return coordinates.getX();
     }
@@ -37,7 +41,7 @@ public abstract class GraphNode extends SingleNode {
         return coordinates.getZ();
     }
 
-    public Coordinates getCoordinates(){
-        return  coordinates;
+    public Coordinates getCoordinates() {
+        return coordinates;
     }
 }

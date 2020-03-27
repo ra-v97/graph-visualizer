@@ -74,7 +74,7 @@ public class ModelGraph extends MultiGraph {
         node.setAttribute(ElementAttributes.FROZEN_LAYOUT);
         node.setAttribute(ElementAttributes.XYZ, faceNode.getXCoordinate(), faceNode.getYCoordinate(), faceNode.getZCoordinate());
         node.addAttribute("ui.style", "fill-color: red;");
-        faces.put(id, faceNode);
+        faces.put(faceNode.getId(), faceNode);
         return faceNode;
     }
 
@@ -131,7 +131,7 @@ public class ModelGraph extends MultiGraph {
         deleteEdge(edge.getId());
     }
 
-    public void deleteEdge(String edgeId){
+    public void deleteEdge(String edgeId) {
         edges.remove(edgeId);
         this.removeEdge(edgeId);
     }
@@ -141,7 +141,7 @@ public class ModelGraph extends MultiGraph {
     }
 
     public List<Vertex> getVerticesBetween(Vertex beginning, Vertex end) {
-        if(beginning.getEdgeBetween(end) != null){
+        if (beginning.getEdgeBetween(end) != null) {
             return new LinkedList<>();
         }
         return this.vertices
@@ -155,7 +155,7 @@ public class ModelGraph extends MultiGraph {
         return this.getVerticesBetween(beginning, end).stream().findFirst();
     }
 
-    public GraphEdge getTriangleLongestEdge(FaceNode faceNode){
+    public GraphEdge getTriangleLongestEdge(FaceNode faceNode) {
         Triplet<Vertex, Vertex, Vertex> triangle = faceNode.getTriangle();
         Vertex v1 = triangle.getValue0();
         Vertex v2 = triangle.getValue1();
@@ -168,9 +168,9 @@ public class ModelGraph extends MultiGraph {
         GraphEdge edge3 = getEdgeBetweenNodes(v1, v3)
                 .orElseThrow(() -> new RuntimeException("Unknown edge id"));
 
-        if(edge1.getLength() >= edge2.getLength() && edge1.getLength() >= edge3.getLength()) {
+        if (edge1.getLength() >= edge2.getLength() && edge1.getLength() >= edge3.getLength()) {
             return edge1;
-        }else if(edge2.getLength() >= edge3.getLength()) {
+        } else if (edge2.getLength() >= edge3.getLength()) {
             return edge2;
         }
         return edge3;
@@ -203,22 +203,23 @@ public class ModelGraph extends MultiGraph {
     private boolean isVertexBetween(Vertex v, Vertex beginning, Vertex end) {
         double epsilon = .001;
         double xd = Math.abs(calculateInlineMatrixDeterminant(v, beginning, end));
-        if(isVertexSameAs(v, beginning) || isVertexSameAs(v,end)){
+        if (isVertexSameAs(v, beginning) || isVertexSameAs(v, end)) {
             return false;
         } else return areCoordinatesMatching(v, beginning, end)
                 && Math.abs(calculateInlineMatrixDeterminant(v, beginning, end)) < epsilon;
     }
 
-    private boolean isVertexSameAs(Vertex a, Vertex b){
+    private boolean isVertexSameAs(Vertex a, Vertex b) {
         return a.getCoordinates().equals(b.getCoordinates());
     }
 
-    private boolean areCoordinatesMatching(Vertex v, Vertex beginning, Vertex end){
+    private boolean areCoordinatesMatching(Vertex v, Vertex beginning, Vertex end) {
         return v.getXCoordinate() <= Math.max(beginning.getXCoordinate(), end.getXCoordinate())
                 && v.getXCoordinate() >= Math.min(beginning.getXCoordinate(), end.getXCoordinate())
                 && v.getYCoordinate() <= Math.max(beginning.getYCoordinate(), end.getYCoordinate())
                 && v.getYCoordinate() >= Math.min(beginning.getYCoordinate(), end.getYCoordinate());
     }
+
     /*
     Basic matrix calculation to check if points are in line with each other
     The matrix looks like this:
@@ -233,16 +234,16 @@ public class ModelGraph extends MultiGraph {
         Coordinates b = beginning.getCoordinates();
         Coordinates c = end.getCoordinates();
 
-        return a.getX()*b.getY()*c.getZ()
-                + a.getY()*b.getZ()*c.getX()
-                + a.getZ()*b.getX()*c.getY()
-                - a.getZ()*b.getY()*c.getX()
-                - a.getX()*b.getZ()*c.getY()
-                - a.getY()*b.getX()*c.getZ();
+        return a.getX() * b.getY() * c.getZ()
+                + a.getY() * b.getZ() * c.getX()
+                + a.getZ() * b.getX() * c.getY()
+                - a.getZ() * b.getY() * c.getX()
+                - a.getX() * b.getZ() * c.getY()
+                - a.getY() * b.getX() * c.getZ();
     }
 
-    public void rotate() {
-        faces.values().forEach(GraphNode::rotate);
-        vertices.values().forEach(GraphNode::rotate);
+    public void rotate(Double pitch, Double yaw, Double roll) {
+        vertices.values().forEach(n -> n.rotate(pitch, yaw, roll));
+        faces.values().forEach(n -> n.rotate(pitch, yaw, roll));
     }
 }
