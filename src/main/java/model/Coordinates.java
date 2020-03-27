@@ -34,7 +34,7 @@ public final class Coordinates {
 
     public static double distance(Coordinates p1, Coordinates p2) {
         double dx = p1.getX() - p2.getX();
-        double dy = p1.getY()- p2.getY();
+        double dy = p1.getY() - p2.getY();
         double dz = p1.getZ() - p2.getZ();
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
@@ -52,6 +52,34 @@ public final class Coordinates {
 
     public Coordinates getRotation() {
         return new Coordinates(y, z, x);
+    }
+
+    public Coordinates rotate(Double pitch, Double yaw, Double roll) {
+        Double cosa = Math.cos(yaw);
+        Double sina = Math.sin(yaw);
+
+        Double cosb = Math.cos(pitch);
+        Double sinb = Math.sin(pitch);
+
+        Double cosc = Math.cos(roll);
+        Double sinc = Math.sin(roll);
+
+        double Axx = cosa * cosb;
+        double Axy = cosa * sinb * sinc - sina * cosc;
+        double Axz = cosa * sinb * cosc + sina * sinc;
+
+        double Ayx = sina * cosb;
+        double Ayy = sina * sinb * sinc + cosa * cosc;
+        double Ayz = sina * sinb * cosc - cosa * sinc;
+
+        double Azx = -sinb;
+        double Azy = cosb * sinc;
+        double Azz = cosb * cosc;
+
+        double px = Axx * x + Axy * y + Axz * z;
+        double py = Ayx * x + Ayy * y + Ayz * z;
+        double pz = Azx * x + Azy * y + Azz * z;
+        return new Coordinates(px, py, pz);
     }
 
     @Override
