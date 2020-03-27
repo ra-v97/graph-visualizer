@@ -2,7 +2,7 @@ package model;
 
 import java.util.Objects;
 
-public final class Point3d {
+public final class Coordinates {
 
     private final double x;
 
@@ -10,7 +10,7 @@ public final class Point3d {
 
     private final double z;
 
-    public Point3d(double x, double y, double z) {
+    public Coordinates(double x, double y, double z) {
         this.x = x;
         this.y = y;
         this.z = z;
@@ -28,28 +28,40 @@ public final class Point3d {
         return z;
     }
 
-    public static double distance(Point3d p1, Point3d p2) {
+    public double distance(Coordinates rhs) {
+        return Coordinates.distance(this, rhs);
+    }
+
+    public static double distance(Coordinates p1, Coordinates p2) {
         double dx = p1.getX() - p2.getX();
         double dy = p1.getY()- p2.getY();
         double dz = p1.getZ() - p2.getZ();
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    public static Point3d middlePoint(Point3d p1, Point3d p2) {
+    public Coordinates middlePoint(Coordinates rhs) {
+        return Coordinates.middlePoint(this, rhs);
+    }
+
+    public static Coordinates middlePoint(Coordinates p1, Coordinates p2) {
         double xs = p1.getX() + p2.getX();
         double ys = p1.getY() + p2.getY();
         double zs = p1.getZ() + p2.getZ();
-        return new Point3d(xs / 2d, ys / 2d, zs / 2d);
+        return new Coordinates(xs / 2d, ys / 2d, zs / 2d);
+    }
+
+    public Coordinates getRotation() {
+        return new Coordinates(y, z, x);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Point3d point3d = (Point3d) o;
-        return Double.compare(point3d.x, x) == 0 &&
-                Double.compare(point3d.y, y) == 0 &&
-                Double.compare(point3d.z, z) == 0;
+        Coordinates coordinates = (Coordinates) o;
+        return Double.compare(coordinates.x, x) == 0 &&
+                Double.compare(coordinates.y, y) == 0 &&
+                Double.compare(coordinates.z, z) == 0;
     }
 
     @Override

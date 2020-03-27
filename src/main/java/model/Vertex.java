@@ -4,30 +4,15 @@ import org.graphstream.graph.Edge;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.AbstractGraph;
 import org.graphstream.graph.implementations.AbstractNode;
-import org.javatuples.Pair;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class Vertex extends GraphNode {
 
-    private VertexType vertexType;
+    private static final String VERTEX_SYMBOL = "V";
 
-    public Vertex(AbstractGraph graph, String id, VertexType vertexType, Point3d coordinates) {
-        super(graph, id, vertexType.getSymbol(), coordinates);
-        this.setVertexType(vertexType);
-    }
-
-    public VertexType getVertexType() {
-        return vertexType;
-    }
-
-    public Vertex setVertexType(VertexType type){
-        this.removeAttribute("ui.class");
-        this.addAttribute("ui.class", type.getSymbol());
-        this.vertexType = type;
-        return this;
+    public Vertex(AbstractGraph graph, String id, Coordinates coordinates) {
+        super(graph, id, VERTEX_SYMBOL, coordinates);
     }
 
     public static class VertexBuilder {
@@ -35,8 +20,6 @@ public class Vertex extends GraphNode {
         private final AbstractGraph graph;
 
         private final String id;
-
-        private VertexType vertexType;
 
         private double xCoordinate;
 
@@ -49,12 +32,7 @@ public class Vertex extends GraphNode {
             this.id = id;
         }
 
-        public VertexBuilder setVertexType(VertexType vertexType) {
-            this.vertexType = vertexType;
-            return this;
-        }
-
-        public VertexBuilder setCoordinates(Point3d coordinates){
+        public VertexBuilder setCoordinates(Coordinates coordinates){
             this.xCoordinate = coordinates.getX();
             this.yCoordinate = coordinates.getY();
             this.zCoordinate = coordinates.getZ();
@@ -77,10 +55,7 @@ public class Vertex extends GraphNode {
         }
 
         public Vertex build() {
-            if (vertexType == null) {
-                vertexType = VertexType.SIMPLE_NODE;
-            }
-            return new Vertex(graph, id, vertexType, new Point3d(xCoordinate, yCoordinate, zCoordinate));
+            return new Vertex(graph, id, new Coordinates(xCoordinate, yCoordinate, zCoordinate));
         }
     }
 

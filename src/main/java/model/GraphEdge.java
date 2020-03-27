@@ -24,7 +24,7 @@ public class GraphEdge extends AbstractEdge {
     }
 
     public double getLength() {
-        return Point3d.distance(edgeNodes.getValue0().getCoordinates(), edgeNodes.getValue1().getCoordinates());
+        return Coordinates.distance(edgeNodes.getValue0().getCoordinates(), edgeNodes.getValue1().getCoordinates());
     }
 
     public static class GraphEdgeBuilder {

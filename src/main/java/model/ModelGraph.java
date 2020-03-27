@@ -1,5 +1,7 @@
 package model;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import common.ElementAttributes;
 import org.graphstream.graph.Edge;
 import org.graphstream.graph.Element;
@@ -7,19 +9,27 @@ import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.MultiGraph;
 import org.javatuples.Triplet;
 
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ModelGraph extends MultiGraph {
 
-    private Map<String, Vertex> vertexes = new HashMap<>();
+    private Map<String, Vertex> vertices = new HashMap<>();
 
-    private Map<String, InteriorNode> interiors = new HashMap<>();
+    private Map<String, FaceNode> faces = new HashMap<>();
 
     private Map<String, GraphEdge> edges = new HashMap<>();
 
     public ModelGraph(String id) {
         super(id);
+    }
+
+    public ModelGraph(ModelGraph graph) {
+        super(graph.id + 1);
+        graph.vertices.values().forEach(this::insertVertex);
+        graph.faces.values().forEach(this::insertFace);
+        graph.edges.values().forEach(this::insertEdge);
     }
 
     public Optional<GraphEdge> getEdgeBetweenNodes(Vertex v1, Vertex v2) {
@@ -29,37 +39,27 @@ public class ModelGraph extends MultiGraph {
 
     public Vertex insertVertex(Vertex vertex) {
         Node node = this.addNode(vertex.getId());
-        node.addAttribute("ui.class", vertex.getVertexType().getSymbol());
         node.setAttribute(ElementAttributes.FROZEN_LAYOUT);
         node.setAttribute(ElementAttributes.XYZ, vertex.getXCoordinate(), vertex.getYCoordinate(), vertex.getZCoordinate());
-        vertexes.put(vertex.getId(), vertex);
+        vertices.put(vertex.getId(), vertex);
         return vertex;
     }
 
-    public Vertex insertVertex(String id, VertexType vertexType, Point3d coordinates) {
+    public Vertex insertVertex(String id, Coordinates coordinates) {
         Vertex vertex = new Vertex.VertexBuilder(this, id)
-                .setVertexType(vertexType)
                 .setCoordinates(coordinates)
                 .build();
         insertVertex(vertex);
         return vertex;
     }
 
-    public Optional<Vertex> getVertex(String id) {
-        return Optional.ofNullable(vertexes.get(id));
-    }
-
-    public Collection<Vertex> getVertices() {
-        return vertexes.values();
-    }
-
     public Optional<Vertex> removeVertex(String id) {
-        Vertex vertex = vertexes.remove(id);
+        Vertex vertex = vertices.remove(id);
         if (vertex != null) {
             this.removeVertex(id);
-            interiors.entrySet().stream()
-                    .filter(interior -> interior.getValue().getTriangleVertexes().contains(vertex))
-                    .forEach(result -> removeInterior(result.getKey()));
+            faces.entrySet().stream()
+                    .filter(face -> face.getValue().getTriangleVertices().contains(vertex))
+                    .forEach(result -> removeFace(result.getKey()));
             edges.values().stream()
                     .filter(graphEdge -> graphEdge.getEdgeNodes().contains(vertex))
                     .map(GraphEdge::getId)
@@ -69,44 +69,40 @@ public class ModelGraph extends MultiGraph {
         return Optional.empty();
     }
 
-    public InteriorNode insertInterior(String id, Point3d coordinates) {
-        InteriorNode interiorNode = new InteriorNode(this, id, coordinates);
-        Node node = this.addNode(interiorNode.getId());
+    public FaceNode insertFace(FaceNode faceNode) {
+        Node node = this.addNode(faceNode.getId());
         node.setAttribute(ElementAttributes.FROZEN_LAYOUT);
-        node.setAttribute(ElementAttributes.XYZ, interiorNode.getXCoordinate(), interiorNode.getYCoordinate(), interiorNode.getZCoordinate());
+        node.setAttribute(ElementAttributes.XYZ, faceNode.getXCoordinate(), faceNode.getYCoordinate(), faceNode.getZCoordinate());
         node.addAttribute("ui.style", "fill-color: red;");
-        interiors.put(id, interiorNode);
-        return interiorNode;
+        faces.put(id, faceNode);
+        return faceNode;
     }
 
-    public InteriorNode insertInterior(String id, Vertex v1, Vertex v2, Vertex v3) {
-        InteriorNode interiorNode = new InteriorNode(this, id, v1, v2, v3);
-        Node node = this.addNode(interiorNode.getId());
+    public FaceNode insertFace(String id, Coordinates coordinates) {
+        FaceNode faceNode = new FaceNode(this, id, coordinates);
+        return insertFace(faceNode);
+    }
+
+    public FaceNode insertFace(String id, Vertex v1, Vertex v2, Vertex v3) {
+        FaceNode faceNode = new FaceNode(this, id, v1, v2, v3);
+        Node node = this.addNode(faceNode.getId());
         node.setAttribute(ElementAttributes.FROZEN_LAYOUT);
-        node.setAttribute(ElementAttributes.XYZ, interiorNode.getXCoordinate(), interiorNode.getYCoordinate(), interiorNode.getZCoordinate());
+        node.setAttribute(ElementAttributes.XYZ, faceNode.getXCoordinate(), faceNode.getYCoordinate(), faceNode.getZCoordinate());
         node.addAttribute("ui.class", "important");
-        interiors.put(id, interiorNode);
-        insertEdge(id.concat(v1.getId()), interiorNode, v1, false, "fill-color: blue;");
-        insertEdge(id.concat(v2.getId()), interiorNode, v2, false, "fill-color: blue;");
-        insertEdge(id.concat(v3.getId()), interiorNode, v3, false, "fill-color: blue;");
-        return interiorNode;
+        faces.put(id, faceNode);
+        insertEdge(id.concat(v1.getId()), faceNode, v1, false, "fill-color: blue;");
+        insertEdge(id.concat(v2.getId()), faceNode, v2, false, "fill-color: blue;");
+        insertEdge(id.concat(v3.getId()), faceNode, v3, false, "fill-color: blue;");
+        return faceNode;
     }
 
-    public Optional<InteriorNode> getInterior(String id) {
-        return Optional.ofNullable(interiors.get(id));
-    }
-
-    public Collection<InteriorNode> getInteriors() {
-        return interiors.values();
-    }
-
-    public void removeInterior(String id) {
+    public void removeFace(String id) {
         List<String> edgesToRemove = edges.values().stream()
-                .filter(graphEdge -> graphEdge.getEdgeNodes().contains(interiors.get(id)))
+                .filter(graphEdge -> graphEdge.getEdgeNodes().contains(faces.get(id)))
                 .map(GraphEdge::getId)
                 .collect(Collectors.toList());
         edgesToRemove.forEach(this::deleteEdge);
-        interiors.remove(id);
+        faces.remove(id);
         this.removeNode(id);
     }
 
@@ -120,6 +116,12 @@ public class ModelGraph extends MultiGraph {
         if (uiStyle != null) {
             edge.addAttribute("ui.style", uiStyle);
         }
+        edges.put(graphEdge.getId(), graphEdge);
+        return graphEdge;
+    }
+
+    public GraphEdge insertEdge(GraphEdge graphEdge) {
+        Edge edge = this.addEdge(graphEdge.getId(), graphEdge.getNode0().getId(), graphEdge.getNode1().getId());
         edges.put(graphEdge.getId(), graphEdge);
         return graphEdge;
     }
@@ -138,11 +140,11 @@ public class ModelGraph extends MultiGraph {
         return Optional.ofNullable(edges.get(id));
     }
 
-    public List<Vertex> getVertexesBetween(Vertex beginning, Vertex end) {
+    public List<Vertex> getVerticesBetween(Vertex beginning, Vertex end) {
         if(beginning.getEdgeBetween(end) != null){
             return new LinkedList<>();
         }
-        return this.vertexes
+        return this.vertices
                 .values()
                 .stream()
                 .filter(v -> isVertexBetween(v, beginning, end))
@@ -150,11 +152,11 @@ public class ModelGraph extends MultiGraph {
     }
 
     public Optional<Vertex> getVertexBetween(Vertex beginning, Vertex end) {
-        return this.getVertexesBetween(beginning, end).stream().findFirst();
+        return this.getVerticesBetween(beginning, end).stream().findFirst();
     }
 
-    public GraphEdge getTriangleLongestEdge(InteriorNode interiorNode){
-        Triplet<Vertex, Vertex, Vertex> triangle = interiorNode.getTriangle();
+    public GraphEdge getTriangleLongestEdge(FaceNode faceNode){
+        Triplet<Vertex, Vertex, Vertex> triangle = faceNode.getTriangle();
         Vertex v1 = triangle.getValue0();
         Vertex v2 = triangle.getValue1();
         Vertex v3 = triangle.getValue2();
@@ -172,6 +174,30 @@ public class ModelGraph extends MultiGraph {
             return edge2;
         }
         return edge3;
+    }
+
+    public Optional<Vertex> getVertex(String id) {
+        return Optional.ofNullable(vertices.get(id));
+    }
+
+    public Collection<Vertex> getVertices() {
+        return vertices.values();
+    }
+
+    public Optional<FaceNode> getFace(String id) {
+        return Optional.ofNullable(faces.get(id));
+    }
+
+    public Collection<FaceNode> getFaces() {
+        return faces.values();
+    }
+
+    public Optional<GraphEdge> getEdge(Vertex v1, Vertex v2) {
+        return Optional.ofNullable(edges.get(v1.getEdgeBetween(v2).getId()));
+    }
+
+    public Collection<GraphEdge> getEdges() {
+        return edges.values();
     }
 
     private boolean isVertexBetween(Vertex v, Vertex beginning, Vertex end) {
@@ -193,7 +219,6 @@ public class ModelGraph extends MultiGraph {
                 && v.getYCoordinate() <= Math.max(beginning.getYCoordinate(), end.getYCoordinate())
                 && v.getYCoordinate() >= Math.min(beginning.getYCoordinate(), end.getYCoordinate());
     }
-
     /*
     Basic matrix calculation to check if points are in line with each other
     The matrix looks like this:
@@ -204,9 +229,9 @@ public class ModelGraph extends MultiGraph {
     so if we calculate det of that matrix and it is equal to 0 it means that all points are in straight line
      */
     private double calculateInlineMatrixDeterminant(Vertex v, Vertex beginning, Vertex end) {
-        Point3d a = v.getCoordinates();
-        Point3d b = beginning.getCoordinates();
-        Point3d c = end.getCoordinates();
+        Coordinates a = v.getCoordinates();
+        Coordinates b = beginning.getCoordinates();
+        Coordinates c = end.getCoordinates();
 
         return a.getX()*b.getY()*c.getZ()
                 + a.getY()*b.getZ()*c.getX()
@@ -216,16 +241,8 @@ public class ModelGraph extends MultiGraph {
                 - a.getY()*b.getX()*c.getZ();
     }
 
-    public Optional<GraphEdge> getEdge(Vertex v1, Vertex v2) {
-        return Optional.ofNullable(edges.get(v1.getEdgeBetween(v2).getId()));
+    public void rotate() {
+        faces.values().forEach(GraphNode::rotate);
+        vertices.values().forEach(GraphNode::rotate);
     }
-
-    public Collection<GraphEdge> getEdges() {
-        return edges.values();
-    }
-
-//    public GraphEdge insertEdge(GraphEdge ge) {
-//        return insertEdge(ge.getId(), ge.getNode0(), ge.getNode1(), ge.getB());
-//    }
-
 }
